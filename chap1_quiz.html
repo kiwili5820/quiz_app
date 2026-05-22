@@ -265,7 +265,7 @@
 
     <header>
         <h1>도전! 대각선 초성 챌린지</h1>
-        
+        <div class="version-tag">v9</div>
         <button class="qr-open-btn" onclick="openQRModal()">
             📱 학생 접속용 QR 보이기
         </button>
@@ -365,6 +365,7 @@ function initGame() {
     
     window.addEventListener('mouseup', onEnd);
     window.addEventListener('touchend', onTouchEnd);
+    window.addEventListener('touchcancel', onTouchEnd); // 예외 발생 시 손가락 뗀 것과 동일하게 처리
     gridEl.addEventListener('touchmove', onTouchMove, { passive: false });
 
     renderPanels();
@@ -428,7 +429,11 @@ function onMove(e) {
 }
 
 function onEnd() {
-    // 사용자가 상하 스크롤을 한 상황이라면 검증 단계를 무조건 무시하고 초기화
+    // 🚨 예외 발생 상황 포함: 어떤 루트로든 터치가 끝나면 힌트바 무조건 복구
+    if (window.innerWidth <= 1200) {
+        hintDashboardEl.classList.remove('hide-action');
+    }
+
     if (isScrollCancelled) {
         isScrollCancelled = false;
         hasDeterminedIntent = false;
@@ -442,10 +447,6 @@ function onEnd() {
     hasDeterminedIntent = false;
     verifySelection();
     clearSelecting();
-    
-    if (window.innerWidth <= 1200) {
-        hintDashboardEl.classList.remove('hide-action');
-    }
 }
 
 function onTouchStart(e) {
@@ -476,20 +477,24 @@ function onTouchMove(e) {
     const diffX = touch.clientX - touchStartX;
     const diffY = touch.clientY - touchStartY;
     
-    // 💡 손가락이 최소 8px 이상 움직였을 때 움직임의 방향성을 최초 1회 판정
-    if (!hasDeterminedIntent && (Math.abs(diffX) > 8 || Math.abs(diffY) > 8)) {
+    // 💡 안드로이드 터치 유격을 잡기 위해 판단 기준 거리를 15px로 확장
+    if (!hasDeterminedIntent && (Math.abs(diffX) > 15 || Math.abs(diffY) > 15)) {
         hasDeterminedIntent = true;
         
-        // 가로 움직임보다 세로 움직임(상하) 비율이 확실히 크다면 '페이지 스크롤'로 인식
-        if (Math.abs(diffY) > Math.abs(diffX) * 1.4) {
+        // 💡 대각선 드래그가 안드로이드 크롬에서 스크롤로 오인받지 않도록 세로 비율 임계값을 2.0으로 상향 보정
+        if (Math.abs(diffY) > Math.abs(diffX) * 2.0) {
             isScrollCancelled = true;
             isDragging = false;
-            clearSelecting(); // 선택중이던 타일 효과 초기화
-            return; // preventDefault를 하지 않아 아이폰 순정 스크롤이 매끄럽게 작동하게 함
+            clearSelecting(); 
+            
+            // 🚨 스크롤 모드로 탈출하는 즉시 하단 힌트바 복원 예외 처리
+            if (window.innerWidth <= 1200) {
+                hintDashboardEl.classList.remove('hide-action');
+            }
+            return; 
         }
     }
 
-    // 스크롤로 빠지지 않은 순수 정답 드래그 모드일 때만 기본 스크롤 차단 및 타일 추적
     if (!isScrollCancelled) {
         e.preventDefault(); 
         const target = document.elementFromPoint(touch.clientX, touch.clientY);
