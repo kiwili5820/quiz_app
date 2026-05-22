@@ -59,7 +59,6 @@
             text-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
         }
 
-        /* 우측 상단 흐린 버전 표시 스타일 */
         .version-tag {
             position: absolute;
             top: 8px;
@@ -266,7 +265,7 @@
 
     <header>
         <h1>도전! 대각선 초성 챌린지</h1>
-        <div class="version-tag">v7</div>
+        <div class="version-tag">v8</div>
         <button class="qr-open-btn" onclick="openQRModal()">
             📱 학생 접속용 QR 보이기
         </button>
@@ -331,6 +330,11 @@ let startCell = null;
 let currentSelectedCells = [];
 let selectedQuizId = null;
 const completedQuizIds = new Set();
+
+// 📱 모바일 스크롤 구분을 위한 좌표 변수 추가
+let touchStartStartX = 0;
+let touchStartStartY = 0;
+let isScrollMode = false;
 
 const gridEl = document.getElementById('quiz-grid');
 const leftPanel = document.getElementById('left-panel');
@@ -417,12 +421,20 @@ function onStart(e) {
 }
 
 function onMove(e) {
-    if (!isDragging || !startCell) return;
+    if (!isDragging || !startCell || isScrollMode) return; // 스크롤 모드면 드래그 로직 건너뜀
     const currentCell = e.target.closest('.cell');
     highlightCells(startCell, currentCell);
 }
 
 function onEnd() {
+    // 사용자가 스크롤을 하려고 했던 상황이라면 드래그 정답 검증 패스
+    if (isScrollMode) {
+        isScrollMode = false;
+        isDragging = false;
+        clearSelecting();
+        return;
+    }
+
     if (!isDragging) return;
     isDragging = false;
     verifySelection();
@@ -434,24 +446,52 @@ function onEnd() {
 }
 
 function onTouchStart(e) {
-    e.preventDefault();
     const touch = e.touches[0];
+    // 시작 좌표 저장
+    touchStartStartX = touch.clientX;
+    touchStartStartY = touch.clientY;
+    isScrollMode = false; // 플래그 초기화
+
     const target = document.elementFromPoint(touch.clientX, touch.clientY);
     if (target && target.classList.contains('cell')) {
-        if (selectedQuizId && window.innerWidth <= 1200) {
+        if (!selectedQuizId) {
+            // 문제를 선택 안 한 상태에서는 화면 스크롤이 되어야 하므로 preventDefault를 안 함
+            return;
+        }
+        
+        if (window.innerWidth <= 1200) {
             hintDashboardEl.classList.add('hide-action');
         }
-        onStart({ target });
+        
+        // 퀴즈 드래그 작동 시작
+        isDragging = true;
+        startCell = target.closest('.cell');
+        highlightCells(startCell, startCell);
     }
 }
 
 function onTouchMove(e) {
-    e.preventDefault();
     if (!isDragging) return;
+    
     const touch = e.touches[0];
-    const target = document.elementFromPoint(touch.clientX, touch.clientY);
-    if (target && target.classList.contains('cell')) {
-        onMove({ target });
+    const moveX = touch.clientX - touchStartStartX;
+    const moveY = touch.clientY - touchStartStartY;
+    
+    // 💡 터치 이동 거리가 상하좌우 30px을 넘어가면 퀴즈 풀이가 아닌 '스크롤'로 판단!
+    if (Math.abs(moveX) > 30 || Math.abs(moveY) > 30) {
+        isScrollMode = true;
+        isDragging = false;
+        clearSelecting(); // 타일 선택 효과 지우기
+        return; // preventDefault를 호출하지 않아 모바일 기본 스크롤이 정상 작동함
+    }
+
+    // 스크롤 모드가 아닐 때만 퀴즈판 드래그 타일 추적 및 기본 브라우저 스크롤 차단
+    if (!isScrollMode) {
+        e.preventDefault(); 
+        const target = document.elementFromPoint(touch.clientX, touch.clientY);
+        if (target && target.classList.contains('cell')) {
+            onMove({ target });
+        }
     }
 }
 
