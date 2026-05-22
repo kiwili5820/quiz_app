@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>대단원 마무리 퀴즈</title>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+        /* Paperlogy 폰트 */
+        @import url('https://cdn.jsdelivr.net/gh/fonts-archive/Paperlogy/Paperlogy.css');
+
+        /* 어그로체 Bold - CDN */
+        @font-face {
+            font-family: 'SBAggroB';
+            src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2108@1.1/SBAggroB.woff') format('woff');
+            font-weight: 700;
+            font-style: normal;
+            font-display: swap;
+        }
+
+        :root {
+            --primary-color: #7A1B1B;
+            --primary-light: #F9ECEC;
+            --correct-color: #2E7D32;
+            --correct-light: #E8F5E9;
+            --select-color: #1976D2;
+            --select-light: #E3F2FD;
+            --border-color: #CCCCCC;
+            --text-color: #222222;
+        }
+
+        * { 
+            box-sizing: border-box; 
+            margin: 0; 
+            padding: 0; 
+            font-family: 'Paperlogy', sans-serif; /* 위에서 정의한 확실한 이름 매핑 */
+        }
+        body { background-color: #F4F6F9; color: var(--text-color); padding: 20px; display: flex; flex-direction: column; align-items: center; }
+        
+        header { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            width: 100%; 
+            max-width: 1400px; 
+            margin-bottom: 25px; 
+            padding: 20px 30px; 
+            background: linear-gradient(135deg, #EA3212 0%, #FEA99A 100%);
+            border-radius: 16px;
+            box-shadow: 0 4px 15px rgba(234, 50, 18, 0.15);
+        }
+        h1 { 
+            font-size: 32px; 
+            color: #FFFFFF; 
+            font-weight: 800;
+            font-family: 'SBAggroB', 'Paperlogy', sans-serif;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+        }
+        
+        .qr-open-btn { 
+            background-color: #111; 
+            color: white; 
+            padding: 12px 24px; 
+            font-size: 18px; 
+            font-weight: bold; 
+            border: none; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            display: flex; 
+            align-items: center; 
+            gap: 8px; 
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1); 
+            transition: transform 0.2s, background-color 0.2s;
+        }
+        .qr-open-btn:hover { background-color: #333; transform: scale(1.02); }
+
+        .container { display: flex; gap: 35px; max-width: 1400px; width: 100%; justify-content: center; align-items: flex-start; margin-bottom: 25px; }
+        
+        .side-panel { flex: 1; min-width: 320px; background: white; padding: 25px; border-radius: 16px; box-shadow: 0 6px 12px rgba(0,0,0,0.06); border: 1px solid #EAEAEA; }
+        .category-box { margin-bottom: 30px; }
+        .category-title { background-color: var(--primary-color); color: white; padding: 12px 16px; font-weight: 800; border-radius: 8px; margin-bottom: 15px; font-size: 22px; text-align: center; }
+        
+        .quiz-item { padding: 15px; border-bottom: 1px solid var(--border-color); cursor: pointer; transition: all 0.2s; border-radius: 8px; margin-bottom: 6px; }
+        .quiz-item:hover { background-color: #FDF8F8; }
+        .quiz-item.active { background-color: var(--select-light); border: 2px solid var(--select-color); }
+        .quiz-item.completed { background-color: var(--correct-light); color: #999; text-decoration: line-through; border: 1px dashed var(--correct-color); }
+        
+        .chosung { font-weight: 800; font-size: 26px; letter-spacing: 4px; color: #000; text-align: center; }
+        .quiz-item.completed .chosung { color: var(--correct-color); }
+        
+        .hint-text { display: none !important; }
+
+        .grid-container { position: relative; background: white; padding: 25px; border-radius: 16px; box-shadow: 0 8px 20px rgba(0,0,0,0.1); user-select: none; -webkit-user-select: none; }
+        .grid { display: grid; grid-template-columns: repeat(10, 60px); grid-template-rows: repeat(10, 60px); gap: 2px; background-color: #BBBBBB; border: 3px solid #888888; }
+        
+        .cell { background: white; display: flex; align-items: center; justify-content: center; font-size: 28px; font-weight: 800; cursor: pointer; position: relative; color: #111; }
+        .cell.selecting { background-color: var(--select-light); color: var(--select-color); }
+        .cell.found { background-color: var(--correct-light); color: var(--correct-color); }
+
+        .hint-dashboard {
+            width: 100%;
+            max-width: 1400px;
+            background: #FFFFFF;
+            border-left: 10px solid var(--select-color);
+            border-radius: 16px;
+            padding: 25px 35px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+            margin-top: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            min-height: 140px;
+        }
+        .hint-dashboard-title {
+            font-size: 18px;
+            font-weight: 800;
+            color: var(--select-color);
+            letter-spacing: 1px;
+        }
+        .hint-dashboard-content {
+            font-size: 26px; 
+            font-weight: 700;
+            line-height: 1.6;
+            color: #111111;
+        }
+
+        .status-bar { margin-top: 20px; font-weight: 800; font-size: 22px; color: var(--primary-color); height: 35px; text-align: center; display: none; }
+
+        svg.overlay-lines { position: absolute; top: 25px; left: 25px; width: 618px; height: 618px; pointer-events: none; z-index: 10; }
+        line.correct-line { stroke: rgba(46, 125, 50, 0.4); stroke-width: 38px; stroke-linecap: round; }
+
+        .qr-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(255, 255, 255, 0.98); z-index: 1000; flex-direction: column; align-items: center; justify-content: center; }
+        .qr-modal.show { display: flex; }
+        .qr-container { background: white; padding: 50px; border-radius: 32px; box-shadow: 0 15px 50px rgba(0,0,0,0.15); border: 2px solid #EEE; display: flex; flex-direction: column; align-items: center; gap: 30px; }
+        
+        #qrcode { padding: 20px; background: #fff; border: 4px solid #111; border-radius: 16px; }
+        #qrcode img { width: 750px !important; height: 750px !important; }
+        
+        .qr-title { font-size: 42px; font-weight: 800; color: #111; text-align: center; }
+        .qr-subtitle { font-size: 24px; color: #555; font-weight: 500; }
+        .qr-close-btn { margin-top: 20px; background-color: var(--primary-color); color: white; padding: 18px 60px; font-size: 26px; font-weight: bold; border: none; border-radius: 14px; cursor: pointer; box-shadow: 0 6px 12px rgba(0,0,0,0.15); }
+
+        @media (max-width: 1200px) {
+            body { padding: 10px; }
+            header { flex-direction: column; gap: 15px; text-align: center; padding: 15px; }
+            h1 { font-size: 24px; }
+            .container { flex-direction: column; align-items: center; gap: 20px; }
+            .side-panel { width: 100%; min-width: unset; padding: 15px; }
+            .grid-container { padding: 10px; width: 100%; max-width: 100vw; display: flex; justify-content: center; overflow-x: auto; }
+            .grid { grid-template-columns: repeat(10, 8.5vw); grid-template-rows: repeat(10, 8.5vw); max-width: 450px; max-height: 450px; width: 85vw; height: 85vw; }
+            .cell { font-size: 4.5vw; }
+            svg.overlay-lines { display: none; }
+            .category-title { font-size: 18px; padding: 8px; }
+            .chosung { font-size: 18px; }
+            .hint-dashboard { padding: 15px; }
+            .hint-dashboard-title { font-size: 14px; }
+            .hint-dashboard-content { font-size: 18px; }
+            #qrcode img { width: 85vw !important; height: 85vw !important; }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>도전! 대각선 초성 챌린지</h1>
+        <button class="qr-open-btn" onclick="openQRModal()">
+            📱 학생 접속용 QR 띄우기
+        </button>
+    </header>
+    
+    <div class="container">
+        <div class="side-panel" id="left-panel"></div>
+        
+        <div class="grid-container">
+            <div class="grid" id="quiz-grid"></div>
+            <svg class="overlay-lines" id="svg-layer"></svg>
+            <div class="status-bar" id="status-message">초성을 선택하면 힌트가 나타납니다!</div>
+        </div>
+        
+        <div class="side-panel" id="right-panel"></div>
+    </div>
+
+    <div class="hint-dashboard">
+        <div class="hint-dashboard-title" id="hint-title">💡 힌트 보기</div>
+        <div class="hint-dashboard-content" id="hint-display">초성 문제를 선택하면 힌트가 이곳에 표시됩니다.</div>
+    </div>
+
+    <div class="qr-modal" id="qrModal">
+        <div class="qr-container">
+            <div class="qr-title">📱 스마트 기기로 퀴즈 참여하기</div>
+            <div class="qr-subtitle">카메라 앱을 켜고 아래 QR 코드를 스캔하세요.</div>
+            <div id="qrcode"></div>
+            <button class="qr-close-btn" onclick="closeQRModal()">❌ 화면 닫기</button>
+        </div>
+    </div>
+
+<script>
+const gridData = [
+  ['상', '마', '찰', '성', '불', '긍', '상', '지', '스', '장'],
+  ['학', '업', '상', '안', '정', '획', '너', '포', '심', '득'],
+  ['성', '신', '주', '적', '역', '에', '츠', '츠', '이', '인'],
+  ['체', '격', '일', '의', '적', '계', '포', '신', '량', '사'],
+  ['상', '탈', '서', '학', '층', '스', '번', '취', '회', '론'],
+  ['안', '관', '역', '번', '에', '운', '섭', '계', '이', '서'],
+  ['인', '적', '성', '너', '트', '소', '동', '인', '사', '육'],
+  ['부', '체', '지', '의', '산', '리', '귀', '전', '득', '회'],
+  ['서', '대', '지', '과', '법', '서', '더', '상', '이', '리'],
+  ['사', '정', '초', '레', '일', '칙', '탈', '십', '십', '응']
+];
+
+const quizData = [
+  { id: 1, category: "심리학", answer: "운동전이", chosung: "ㅇㄷㅈㅇ", hint: "앞서 연습한 결과가 뒤따르는 운동 수행이나 학습에 영향을 미치는 것", row: 5, col: 5, direction: "dr", length: 4 },
+  { id: 2, category: "심리학", answer: "귀인이론", chosung: "ㄱㅇㅇㄹ", hint: "성공하거나 실패한 원인을 무엇으로 생각하느냐에 따라 정서적·행동적 반응이 달라진다고 보는 이론", row: 7, col: 6, direction: "ur", length: 4 },
+  { id: 3, category: "심리학", answer: "서번트리더십", chosung: "ㅅㅂㅌㄹㄷㅅ", hint: "구성원의 의견을 존중하고 구성원의 이익과 욕구를 우선시하며 신뢰를 바탕으로 팀을 이끄는 리더십", row: 4, col: 2, direction: "ur", length: 7 },
+  { id: 4, category: "사회학", answer: "상업주의", chosung: "ㅅㅇㅈㅇ", hint: "스포츠 고유의 긍정적 가치가 있음에도 불구하고 자본과 결합하여 가치와 목적이 상업적으로 변화됨", row: 0, col: 0, direction: "dr", length: 4 },
+  { id: 5, category: "사회학", answer: "스포츠계층", chosung: "ㅅㅍㅊㄱㅊ", hint: "스포츠라는 특정 사회 제도 내에서 제한된 자원을 두고 나타난 차별적 가치의 영향으로 발생한 위계 체계", row: 0, col: 8, direction: "dl", length: 5 },
+  { id: 6, category: "사회학", answer: "긍정적일탈", chosung: "ㄱㅈㅈㅇㅌ", hint: "승리에 대한 강한 집념과 과도한 헌신으로 인해 일반적인 행동 범위를 넘어서는 규칙 준수 행위", row: 0, col: 5, direction: "dl", length: 5 },
+  { id: 7, category: "생리학", answer: "스포츠심장", chosung: "ㅅㅍㅊㅅㅈ", hint: "운동선수나 장기간 규칙적으로 유산소 운동을 하는 사람에게 나타나는 심장의 생리적 변화", row: 4, col: 5, direction: "ur", length: 5 },
+  { id: 8, category: "생리학", answer: "초과산소섭취량", chosung: "ㅊㄱㅅㅅㅅㅊㄹ", hint: "운동 후 피로 물질 제거와 신체 기능 회복을 위해 평상시 수준을 초과하여 추가로 섭취하는 산소량", row: 9, col: 2, direction: "ur", length: 7 },
+  { id: 9, category: "생리학", answer: "에너지대사", chosung: "ㅇㄴㅈㄷㅅ", hint: "생명체가 외부에서 섭취한 영양소를 분해·합성하여 에너지를 생성하고 소비하는 화학적 과정 전체", row: 5, col: 4, direction: "dl", length: 5 },
+  { id: 10, category: "역학", answer: "역학적에너지", chosung: "ㅇㅎㅈㅇㄴㅈ", hint: "물체의 운동 에너지와 위치 에너지의 합", row: 5, col: 2, direction: "ur", length: 6 },
+  { id: 11, category: "역학", answer: "관성의법칙", chosung: "ㄱㅅㅇㅂㅊ", hint: "물체에 외력이 작용하지 않으면 정지 상태나 등속도 운동 상태를 유지하려는 성질", row: 5, col: 1, direction: "dr", length: 5 },
+  { id: 12, category: "역학", answer: "인체지레", chosung: "ㅇㅊㅈㄹ", hint: "뼈(지레대), 관절(받침점), 근육(힘점) 등의 상호작용으로 효율적인 신체 움직임을 만드는 원리", row: 6, col: 0, direction: "dr", length: 4 }
+];
+
+let isDragging = false;
+let startCell = null;
+let currentSelectedCells = [];
+let selectedQuizId = null;
+const completedQuizIds = new Set();
+
+const gridEl = document.getElementById('quiz-grid');
+const leftPanel = document.getElementById('left-panel');
+const rightPanel = document.getElementById('right-panel');
+const svgLayer = document.getElementById('svg-layer');
+
+const hintTitleEl = document.getElementById('hint-title');
+const hintDisplayEl = document.getElementById('hint-display');
+
+function initGame() {
+    for (let r = 0; r < 10; r++) {
+        for (let c = 0; c < 10; c++) {
+            const cell = document.createElement('div');
+            cell.classList.add('cell');
+            cell.textContent = gridData[r][c];
+            cell.dataset.row = r;
+            cell.dataset.col = c;
+            
+            cell.addEventListener('mousedown', onStart);
+            cell.addEventListener('mouseenter', onMove);
+            cell.addEventListener('touchstart', onTouchStart, { passive: false });
+            
+            gridEl.appendChild(cell);
+        }
+    }
+    
+    window.addEventListener('mouseup', onEnd);
+    window.addEventListener('touchend', onTouchEnd);
+    gridEl.addEventListener('touchmove', onTouchMove, { passive: false });
+
+    renderPanels();
+    generateQR();
+}
+
+function renderPanels() {
+    const categories = ["심리학", "사회학", "생리학", "역학"];
+    categories.forEach((cat, idx) => {
+        const box = document.createElement('div');
+        box.classList.add('category-box');
+        box.innerHTML = `<div class="category-title">${cat}</div>`;
+        
+        const filtered = quizData.filter(q => q.category === cat);
+        filtered.forEach(q => {
+            const item = document.createElement('div');
+            item.classList.add('quiz-item');
+            item.id = `quiz-${q.id}`;
+            item.innerHTML = `
+                <div class="chosung">${q.chosung}</div>
+            `;
+            item.addEventListener('click', () => selectQuiz(q.id));
+            box.appendChild(item);
+        });
+        
+        if (idx < 2) leftPanel.appendChild(box);
+        else rightPanel.appendChild(box);
+    });
+}
+
+function selectQuiz(id) {
+    if(completedQuizIds.has(id)) return;
+    
+    document.querySelectorAll('.quiz-item').forEach(el => el.classList.remove('active'));
+    selectedQuizId = id;
+    
+    const activeItem = document.getElementById(`quiz-${id}`);
+    activeItem.classList.add('active');
+    
+    const target = quizData.find(q => q.id === id);
+    
+    hintTitleEl.textContent = `📋 [${target.category}] 힌트 - 초성: ${target.chosung}`;
+    hintDisplayEl.textContent = target.hint;
+}
+
+function onStart(e) {
+    if (!selectedQuizId) {
+        hintTitleEl.textContent = "⚠️ 사용 안내";
+        hintDisplayEl.textContent = "문제를 먼저 선택해 주세요!";
+        return;
+    }
+    isDragging = true;
+    startCell = e.target.closest('.cell');
+    highlightCells(startCell, startCell);
+}
+
+function onMove(e) {
+    if (!isDragging || !startCell) return;
+    const currentCell = e.target.closest('.cell');
+    highlightCells(startCell, currentCell);
+}
+
+function onEnd() {
+    if (!isDragging) return;
+    isDragging = false;
+    verifySelection();
+    clearSelecting();
+}
+
+function onTouchStart(e) {
+    e.preventDefault();
+    const touch = e.touches[0];
+    const target = document.elementFromPoint(touch.clientX, touch.clientY);
+    if (target && target.classList.contains('cell')) {
+        onStart({ target });
+    }
+}
+
+function onTouchMove(e) {
+    e.preventDefault();
+    if (!isDragging) return;
+    const touch = e.touches[0];
+    const target = document.elementFromPoint(touch.clientX, touch.clientY);
+    if (target && target.classList.contains('cell')) {
+        onMove({ target });
+    }
+}
+
+function onTouchEnd() { onEnd(); }
+
+function highlightCells(start, end) {
+    if (!start || !end) return;
+    clearSelecting();
+    
+    const r1 = parseInt(start.dataset.row);
+    const c1 = parseInt(start.dataset.col);
+    const r2 = parseInt(end.dataset.row);
+    const c2 = parseInt(end.dataset.col);
+    
+    const rowDiff = r2 - r1;
+    const colDiff = c2 - c1;
+    
+    if (Math.abs(rowDiff) !== Math.abs(colDiff) && rowDiff !== 0 && colDiff !== 0) return;
+    
+    const steps = Math.max(Math.abs(rowDiff), Math.abs(colDiff));
+    const rStep = rowDiff === 0 ? 0 : rowDiff / steps;
+    const cStep = colDiff === 0 ? 0 : colDiff / steps;
+    
+    currentSelectedCells = [];
+    for (let i = 0; i <= steps; i++) {
+        const currR = r1 + (rStep * i);
+        const currC = c1 + (cStep * i);
+        const cell = document.querySelector(`.cell[data-row='${currR}'][data-col='${currC}']`);
+        if (cell) {
+            cell.classList.add('selecting');
+            currentSelectedCells.push(cell);
+        }
+    }
+}
+
+function clearSelecting() {
+    document.querySelectorAll('.cell').forEach(c => c.classList.remove('selecting'));
+}
+
+function verifySelection() {
+    if (currentSelectedCells.length === 0 || !selectedQuizId) return;
+    const currentQuiz = quizData.find(q => q.id === selectedQuizId);
+    const userWord = currentSelectedCells.map(c => c.textContent).join('');
+    
+    if (userWord === currentQuiz.answer) {
+        handleCorrect(currentQuiz);
+    } else {
+        hintTitleEl.textContent = "❌ 오답 알림";
+        hintDisplayEl.innerHTML = `아쉽습니다! 정답이 아닙니다. 다시 조합을 찾아보세요.<br>(힌트: ${currentQuiz.hint})`;
+    }
+}
+
+function handleCorrect(quiz) {
+    completedQuizIds.add(quiz.id);
+    
+    hintTitleEl.textContent = "🎉 정답 인증 완료";
+    hintDisplayEl.textContent = `🎯 정답입니다! 용어: [ ${quiz.answer} ]`;
+    
+    currentSelectedCells.forEach(cell => cell.classList.add('found'));
+
+    if (window.innerWidth > 1200) {
+        drawCorrectLine(currentSelectedCells[0], currentSelectedCells[currentSelectedCells.length - 1]);
+    }
+    
+    const itemEl = document.getElementById(`quiz-${quiz.id}`);
+    itemEl.classList.remove('active');
+    itemEl.classList.add('completed');
+    selectedQuizId = null;
+
+    if (completedQuizIds.size === quizData.length) {
+        hintTitleEl.textContent = "🏆 도전 성공";
+        hintDisplayEl.textContent = "축하합니다! 모든 초성 퀴즈를 완벽하게 해결하셨습니다!";
+    }
+}
+
+function drawCorrectLine(startCell, endCell) {
+    const startRect = startCell.getBoundingClientRect();
+    const endRect = endCell.getBoundingClientRect();
+    const containerRect = gridEl.getBoundingClientRect();
+
+    const x1 = (startRect.left + startRect.width / 2) - containerRect.left;
+    const y1 = (startRect.top + startRect.height / 2) - containerRect.top;
+    const x2 = (endRect.left + endRect.width / 2) - containerRect.left;
+    const y2 = (endRect.top + endRect.height / 2) - containerRect.top;
+
+    const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+    line.setAttribute("x1", x1);
+    line.setAttribute("y1", y1);
+    line.setAttribute("x2", x2);
+    line.setAttribute("y2", y2);
+    line.classList.add("correct-line");
+
+    svgLayer.appendChild(line);
+}
+
+function openQRModal() {
+    document.getElementById('qrModal').classList.add('show');
+}
+
+function closeQRModal() {
+    document.getElementById('qrModal').classList.remove('show');
+}
+
+function generateQR() {
+    const currentURL = 'https://kiwili5820.github.io/quiz_app/chap1_quiz.html';
+    document.getElementById("qrcode").innerHTML = ""; 
+    new QRCode(document.getElementById("qrcode"), {
+        text: currentURL,
+        width: 750, 
+        height: 750, 
+        colorDark : "#000000",
+        colorLight : "#ffffff",
+        correctLevel : QRCode.CorrectLevel.H
+    });
+}
+
+initGame();
+</script>
+</body>
+</html>
