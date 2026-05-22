@@ -39,13 +39,14 @@
         body { background-color: #F4F6F9; color: var(--text-color); padding: 20px; display: flex; flex-direction: column; align-items: center; }
         
         header { 
+            position: relative; /* 버전 표시를 우측 상단에 고정하기 위한 기준점 */
             display: flex; 
             justify-content: space-between; 
             align-items: center; 
             width: 100%; 
             max-width: 1400px; 
             margin-bottom: 25px; 
-            padding: 20px 30px; 
+            padding: 25px 30px 20px 30px; /* 위쪽 패딩을 살짝 늘려 버전 표시 공간 확보 */
             background: linear-gradient(135deg, #EA3212 0%, #FEA99A 100%);
             border-radius: 16px;
             box-shadow: 0 4px 15px rgba(234, 50, 18, 0.15);
@@ -56,6 +57,17 @@
             font-weight: 800;
             font-family: 'SBAggroB', 'Paperlogy', sans-serif;
             text-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+        }
+
+        /* 우측 상단 흐린 버전 표시 스타일 */
+        .version-tag {
+            position: absolute;
+            top: 8px;
+            right: 16px;
+            font-size: 12px;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.5); /* 흰색 배경에 흐리게 투명도 조절 */
+            letter-spacing: 0.5px;
         }
         
         .qr-open-btn { 
@@ -157,43 +169,47 @@
         /* 📱 모바일 환경 반응형 CSS (1200px 이하) */
         @media (max-width: 1200px) {
             body { padding: 10px; padding-bottom: 120px; }
-            header { flex-direction: column; gap: 15px; text-align: center; padding: 15px; margin-bottom: 15px; }
+            header { flex-direction: column; gap: 15px; text-align: center; padding: 20px 15px 15px 15px; margin-bottom: 15px; }
             h1 { font-size: 24px; }
+            .version-tag { top: 6px; right: 12px; font-size: 10px; color: rgba(255, 255, 255, 0.4); }
             .qr-open-btn { display: none !important; }
             
-            /* 모바일에서 컨테이너 내부 정렬 순서를 위에서 아래로 정렬 */
+            /* 컨테이너 내부 요소 배치 순서 */
             .container { flex-direction: column; align-items: center; gap: 15px; }
             
-            /* [대안 1 적용] 좌측 패널과 우측 패널을 모바일에서 하나처럼 합치고 2x2 그리드로 정렬 */
+            #left-panel { order: 1; }
+            #right-panel { order: 2; }
+            .grid-container { order: 3; }
+            
+            /* 패널 스타일 구조 */
             .side-panel { 
                 width: 100%; 
                 min-width: unset; 
-                padding: 10px; 
+                padding: 0; 
                 background: transparent; 
                 box-shadow: none; 
                 border: none;
                 display: grid;
-                grid-template-columns: repeat(2, 1fr); /* 2열 배치 정렬 */
+                grid-template-columns: repeat(2, 1fr); 
                 gap: 10px;
             }
-            /* 패널 구분을 없앴기 때문에 우측 패널 상단 여백 제거 */
-            #right-panel { margin-top: -15px; } 
             
-            /* 각각의 과목 박스 스타일 다듬기 */
+            #right-panel { margin-top: -5px; } 
+            
             .category-box { 
                 background: white; 
                 padding: 12px; 
                 border-radius: 12px; 
                 box-shadow: 0 4px 8px rgba(0,0,0,0.05); 
                 border: 1px solid #EAEAEA;
-                margin-bottom: 0; /* 기존 하단 여백 제거 */
+                margin-bottom: 0;
             }
             .category-title { font-size: 15px; padding: 6px; margin-bottom: 8px; border-radius: 6px; }
             
             .quiz-item { padding: 8px; margin-bottom: 4px; }
             .chosung { font-size: 15px; letter-spacing: 2px; }
             
-            /* 퀴즈판 컨테이너 배치 정렬 */
+            /* 퀴즈판 크기 최적화 */
             .grid-container { padding: 10px; width: 100%; max-width: 100vw; display: flex; justify-content: center; overflow-x: auto; }
             .grid { grid-template-columns: repeat(10, 8.5vw); grid-template-rows: repeat(10, 8.5vw); max-width: 450px; max-height: 450px; width: 85vw; height: 85vw; }
             .cell { font-size: 4.5vw; }
@@ -216,7 +232,6 @@
                 z-index: 999;
                 transform: translateY(0);
             }
-            /* 드래그 작동 시 숨김 클래스 */
             .hint-dashboard.hide-action {
                 transform: translateY(100%);
                 opacity: 0;
@@ -231,6 +246,7 @@
 
     <header>
         <h1>도전! 대각선 초성 챌린지</h1>
+        <div class="version-tag">v5</div>
         <button class="qr-open-btn" onclick="openQRModal()">
             📱 학생 접속용 QR 보이기
         </button>
@@ -238,14 +254,13 @@
     
     <div class="container">
         <div class="side-panel" id="left-panel"></div>
+        <div class="side-panel" id="right-panel"></div>
         
         <div class="grid-container">
             <div class="grid" id="quiz-grid"></div>
             <svg class="overlay-lines" id="svg-layer"></svg>
             <div class="status-bar" id="status-message">초성을 선택하면 힌트가 나타납니다!</div>
         </div>
-        
-        <div class="side-panel" id="right-panel"></div>
     </div>
 
     <div class="hint-dashboard" id="hintDashboard">
