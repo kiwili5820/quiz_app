@@ -265,7 +265,7 @@
 
     <header>
         <h1>도전! 대각선 초성 챌린지</h1>
-        <div class="version-tag">v8</div>
+        <div class="version-tag">v9</div>
         <button class="qr-open-btn" onclick="openQRModal()">
             📱 학생 접속용 QR 보이기
         </button>
@@ -331,10 +331,11 @@ let currentSelectedCells = [];
 let selectedQuizId = null;
 const completedQuizIds = new Set();
 
-// 📱 모바일 스크롤 구분을 위한 좌표 변수 추가
-let touchStartStartX = 0;
-let touchStartStartY = 0;
-let isScrollMode = false;
+// 📱 터치 방향성 스크롤 필터링용 변수
+let touchStartX = 0;
+let touchStartY = 0;
+let isScrollCancelled = false; // 스크롤로 판정되어 드래그가 취소되었는지 여부
+let hasDeterminedIntent = false; // 스크롤/드래그 판정이 끝났는지 여부
 
 const gridEl = document.getElementById('quiz-grid');
 const leftPanel = document.getElementById('left-panel');
@@ -421,15 +422,16 @@ function onStart(e) {
 }
 
 function onMove(e) {
-    if (!isDragging || !startCell || isScrollMode) return; // 스크롤 모드면 드래그 로직 건너뜀
+    if (!isDragging || !startCell || isScrollCancelled) return; 
     const currentCell = e.target.closest('.cell');
     highlightCells(startCell, currentCell);
 }
 
 function onEnd() {
-    // 사용자가 스크롤을 하려고 했던 상황이라면 드래그 정답 검증 패스
-    if (isScrollMode) {
-        isScrollMode = false;
+    // 사용자가 상하 스크롤을 한 상황이라면 검증 단계를 무조건 무시하고 초기화
+    if (isScrollCancelled) {
+        isScrollCancelled = false;
+        hasDeterminedIntent = false;
         isDragging = false;
         clearSelecting();
         return;
@@ -437,6 +439,7 @@ function onEnd() {
 
     if (!isDragging) return;
     isDragging = false;
+    hasDeterminedIntent = false;
     verifySelection();
     clearSelecting();
     
@@ -447,23 +450,19 @@ function onEnd() {
 
 function onTouchStart(e) {
     const touch = e.touches[0];
-    // 시작 좌표 저장
-    touchStartStartX = touch.clientX;
-    touchStartStartY = touch.clientY;
-    isScrollMode = false; // 플래그 초기화
+    touchStartX = touch.clientX;
+    touchStartY = touch.clientY;
+    isScrollCancelled = false;
+    hasDeterminedIntent = false;
 
     const target = document.elementFromPoint(touch.clientX, touch.clientY);
     if (target && target.classList.contains('cell')) {
-        if (!selectedQuizId) {
-            // 문제를 선택 안 한 상태에서는 화면 스크롤이 되어야 하므로 preventDefault를 안 함
-            return;
-        }
+        if (!selectedQuizId) return; // 문제 미선택 시 터치 컨트롤 브라우저에 양보
         
         if (window.innerWidth <= 1200) {
             hintDashboardEl.classList.add('hide-action');
         }
         
-        // 퀴즈 드래그 작동 시작
         isDragging = true;
         startCell = target.closest('.cell');
         highlightCells(startCell, startCell);
@@ -471,22 +470,27 @@ function onTouchStart(e) {
 }
 
 function onTouchMove(e) {
-    if (!isDragging) return;
+    if (!isDragging || isScrollCancelled) return;
     
     const touch = e.touches[0];
-    const moveX = touch.clientX - touchStartStartX;
-    const moveY = touch.clientY - touchStartStartY;
+    const diffX = touch.clientX - touchStartX;
+    const diffY = touch.clientY - touchStartY;
     
-    // 💡 터치 이동 거리가 상하좌우 30px을 넘어가면 퀴즈 풀이가 아닌 '스크롤'로 판단!
-    if (Math.abs(moveX) > 30 || Math.abs(moveY) > 30) {
-        isScrollMode = true;
-        isDragging = false;
-        clearSelecting(); // 타일 선택 효과 지우기
-        return; // preventDefault를 호출하지 않아 모바일 기본 스크롤이 정상 작동함
+    // 💡 손가락이 최소 8px 이상 움직였을 때 움직임의 방향성을 최초 1회 판정
+    if (!hasDeterminedIntent && (Math.abs(diffX) > 8 || Math.abs(diffY) > 8)) {
+        hasDeterminedIntent = true;
+        
+        // 가로 움직임보다 세로 움직임(상하) 비율이 확실히 크다면 '페이지 스크롤'로 인식
+        if (Math.abs(diffY) > Math.abs(diffX) * 1.4) {
+            isScrollCancelled = true;
+            isDragging = false;
+            clearSelecting(); // 선택중이던 타일 효과 초기화
+            return; // preventDefault를 하지 않아 아이폰 순정 스크롤이 매끄럽게 작동하게 함
+        }
     }
 
-    // 스크롤 모드가 아닐 때만 퀴즈판 드래그 타일 추적 및 기본 브라우저 스크롤 차단
-    if (!isScrollMode) {
+    // 스크롤로 빠지지 않은 순수 정답 드래그 모드일 때만 기본 스크롤 차단 및 타일 추적
+    if (!isScrollCancelled) {
         e.preventDefault(); 
         const target = document.elementFromPoint(touch.clientX, touch.clientY);
         if (target && target.classList.contains('cell')) {
